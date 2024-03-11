@@ -1,0 +1,5 @@
+CUDA_VISIBLE_DEVICES=2 python mix_train.py --k 1 --mix_ratio 0.0 --output_model_path 'param_study_mae_vit-t_tinyimagenet_mix0.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "param study"
+CUDA_VISIBLE_DEVICES=2 python mix_train.py --k 1 --mix_ratio 0.25 --output_model_path 'param_study_mae_vit-t_tinyimagenet_mix25.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "param study"
+CUDA_VISIBLE_DEVICES=2 python mix_train.py --k 1 --mix_ratio 0.5 --output_model_path 'param_study_mae_vit-t_tinyimagenet_mix50.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "param study"
+CUDA_VISIBLE_DEVICES=2 python mix_train.py --k 1 --mix_ratio 0.75 --output_model_path 'param_study_mae_vit-t_tinyimagenet_mix75.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "param study"
+CUDA_VISIBLE_DEVICES=2 python mix_train.py --k 1 --mix_ratio 1.0 --output_model_path 'param_study_mae_vit-t_tinyimagenet_mix100.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "param study"

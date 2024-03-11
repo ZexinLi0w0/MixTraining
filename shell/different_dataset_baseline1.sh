@@ -1,0 +1,8 @@
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet18_from_tinyimagenet_to_cifar10_mix0.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet18_from_tinyimagenet_to_cifar100_mix0.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"
+
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet26_from_tinyimagenet_to_cifar10_mix0.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline" --model_name 'resnet26'
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet26_from_tinyimagenet_to_cifar100_mix0.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline" --model_name 'resnet26'
+
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet34_from_tinyimagenet_to_cifar10_mix0.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline" --model_name 'resnet34'
+CUDA_VISIBLE_DEVICES=2 python resnet_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_resnet34_from_tinyimagenet_to_cifar100_mix0.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline" --model_name 'resnet34'

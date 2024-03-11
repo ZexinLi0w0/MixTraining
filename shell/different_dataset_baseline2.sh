@@ -1,0 +1,5 @@
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_vit-t_from_tinyimagenet_to_cifar10_mix0.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'standard_ae_vit-t_from_tinyimagenet_to_cifar100_mix0.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"
+
+CUDA_VISIBLE_DEVICES=3 python vit_train_mae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'mae_vit-t_from_tinyimagenet_to_cifar10_mix0.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"
+CUDA_VISIBLE_DEVICES=3 python vit_train_mae_diff_dataset.py --k 1 --mix_ratio 0.0 --output_model_path 'mae_vit-t_from_tinyimagenet_to_cifar100_mix0.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 100 --enable_wandb --info "diff dataset baseline"

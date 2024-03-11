@@ -1,0 +1,3 @@
+CUDA_VISIBLE_DEVICES=0 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.25 --output_model_path 'transfer_imagenet_resnet18_cifar10_mix25.pt' --dataset 'cifar10' --ft_epoch 100 --pt_epoch 0 --enable_wandb --from_pretrain 
+CUDA_VISIBLE_DEVICES=0 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.25 --output_model_path 'transfer_imagenet_resnet18_cifar100_mix25.pt' --dataset 'cifar100' --ft_epoch 100 --pt_epoch 0 --enable_wandb --from_pretrain 
+CUDA_VISIBLE_DEVICES=0 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.25 --output_model_path 'transfer_imagenet_resnet18_tinyimagenet_mix25.pt' --dataset 'tinyimagenet' --ft_epoch 100 --pt_epoch 0 --enable_wandb --from_pretrain 

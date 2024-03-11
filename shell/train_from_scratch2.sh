@@ -1,0 +1,9 @@
+CUDA_VISIBLE_DEVICES=3 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_resnet34_cifar10_200.pt' --dataset 'cifar10' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch" --model_name 'resnet34'
+CUDA_VISIBLE_DEVICES=3 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_resnet34_cifar100_200.pt' --dataset 'cifar100' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch" --model_name 'resnet34'
+CUDA_VISIBLE_DEVICES=3 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_resnet34_tinyimagenet_200.pt' --dataset 'tinyimagenet' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch" --model_name 'resnet34'
+CUDA_VISIBLE_DEVICES=3 python resnet_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_resnet34_svhn_200.pt' --dataset 'svhn' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch" --model_name 'resnet34'
+
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_vit-t_cifar10_200.pt' --dataset 'cifar10' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch"
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_vit-t_cifar100_200.pt' --dataset 'cifar100' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch"
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_vit-t_tinyimagenet_200.pt' --dataset 'tinyimagenet' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch"
+CUDA_VISIBLE_DEVICES=3 python vit_train_standard_ae.py --k 1 --mix_ratio 0.0 --output_model_path 'scratch_vit-t_svhn_200.pt' --dataset 'svhn' --ft_epoch 200 --pt_epoch 0 --enable_wandb --info "scratch"
