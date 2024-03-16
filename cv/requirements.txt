@@ -1,0 +1,6 @@
+timm
+einops
+wandb
+tinyimagenet
+thop
+datasets
