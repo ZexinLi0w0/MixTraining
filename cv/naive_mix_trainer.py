@@ -90,11 +90,11 @@ class NaiveMixTrainer(MixTrainer):
         self,
         model: nn.Module,
         inputs: Dict[str, Union[torch.Tensor, Any]],
-        forward_fn: Callable,
-        loss_fn: Callable,
     ) -> torch.Tensor:
         scheduler = self.schedulers["finetune"]
         optimizer = self.optimizers["finetune"]
+        forward_fn = self.forward_fns["finetune"]
+        loss_fn = self.loss_fns["finetune"]
         outputs = forward_fn(model, inputs, mode="finetune")
         loss: torch.Tensor = loss_fn(inputs, **outputs)
         loss.backward()
