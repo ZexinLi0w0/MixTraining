@@ -4,11 +4,6 @@ from typing import Callable
 from training_args import MixTrainingArgs
 
 
-class TrainingArguments:
-    def __init__(self, seed):
-        self.seed = 42
-
-
 class MixTrainer(abc.ABC):
     """
     Args:
