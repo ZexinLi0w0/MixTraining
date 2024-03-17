@@ -1,47 +1,39 @@
 import abc
-import dataclasses
-import json
-import time
+import logging
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
+from tqdm import tqdm
 
 
 class MixTrainer(abc.ABC):
     """
-    Args:
-        model:
-            The model to train
-        args:
-            Training arguments
-        data_collator:
-        pre_train_dataset:
-        eval_dataset:
-        model_init:
-        compute_metrics:
-        callbacks:
-        optimizers:
+    TODO
     """
 
     def __init__(
         self,
         model,
-        pt_dataset,
-        ft_dataset,
+        pt_dataloader,
+        ft_dataloader,
         eval_dataset,
         compute_metrics: Callable,
-        optimizers,
-        schedulers,
+        optimizers: Dict[str, Any],
+        schedulers: Dict[str, Any],
+        forward_fns: Dict[str, Callable],
+        loss_fns: Dict[str, Callable],
     ):
         self.model = model
-        self.pt_dataset = pt_dataset
-        self.ft_dataset = ft_dataset
+        self.pt_dataloader = pt_dataloader
+        self.ft_dataloader = ft_dataloader
         self.eval_dataset = eval_dataset
         self.compute_metrics = compute_metrics
         self.optimizers = optimizers
         self.schedulers = schedulers
+        self.forward_fns = forward_fns
+        self.loss_fns = loss_fns
         self.training_steps = self._make_training_steps()
 
     @abc.abstractmethod
@@ -66,21 +58,6 @@ class MixTrainer(abc.ABC):
         """
         raise NotImplementedError
 
-    def inner_training_loop(self):
-        for epoch, epoch_steps in enumerate(self.training_steps):
-            self.state.epoch = epoch
-            for step in epoch_steps:
-                step(self)
-
-    def training_step(self, step: int):
-        """
-        Train one epoch
-
-        Args:
-            mode: a function that defines the training process for one epoch
-        """
-        self.training_steps[step]()
-
     def train(self, resume_from_checkpoint: Optional[Union[str, bool]] = None):
         """
         Entry point for training.
@@ -91,5 +68,8 @@ class MixTrainer(abc.ABC):
                 `bool` and equals `True`, load the last checkpoint in *args.output_dir* as saved by a previous instance
                 of [`Trainer`]. If present, training will resume from the model/optimizer/scheduler states loaded here.
         """
-        # TODO: training_steps based training
-        pass
+        # TODO: resume from checkpoint
+        for epoch, epoch_steps in enumerate(self.training_steps):
+            logging.info(f"Epoch {epoch}")
+            for step in tqdm(epoch_steps):
+                step(self)
