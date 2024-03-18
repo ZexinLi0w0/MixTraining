@@ -15,38 +15,28 @@ class MixTrainer(abc.ABC):
 
     def __init__(
         self,
-        model,
+        pt_lossfn: Callable,
+        pt_optimizer,
+        pt_scheduler,
         pt_dataloader,
+        ft_lossfn: Callable,
+        ft_optimizer,
+        ft_scheduler,
         ft_dataloader,
-        eval_dataset,
-        compute_metrics: Callable,
-        optimizers: Dict[str, Any],
-        schedulers: Dict[str, Any],
-        forward_fns: Dict[str, Callable],
-        loss_fns: Dict[str, Callable],
     ):
-        self.model = model
+        self.pt_lossfn = pt_lossfn
+        self.pt_optimizer = pt_optimizer
+        self.pt_scheduler = pt_scheduler
         self.pt_dataloader = pt_dataloader
+        self.ft_lossfn = ft_lossfn
+        self.ft_optimizer = ft_optimizer
+        self.ft_scheduler = ft_scheduler
         self.ft_dataloader = ft_dataloader
-        self.eval_dataset = eval_dataset
-        self.compute_metrics = compute_metrics
-        self.optimizers = optimizers
-        self.schedulers = schedulers
-        self.forward_fns = forward_fns
-        self.loss_fns = loss_fns
-        self.training_steps = self._make_training_steps()
 
     @abc.abstractmethod
-    def _make_training_steps(
+    def _make_training_epochs(
         self,
-    ) -> list[
-        list[
-            Callable[
-                ["MixTrainer", nn.Module, Dict[str, Union[torch.Tensor, Any]]],
-                torch.Tensor,
-            ]
-        ]
-    ]:
+    ) -> list[Callable[["MixTrainer"], None]]:
         """
         make_mode defines how to partition the training process into pre-training, mix-training and fine-tuning
         to implement this method, you need to gene
@@ -69,7 +59,6 @@ class MixTrainer(abc.ABC):
                 of [`Trainer`]. If present, training will resume from the model/optimizer/scheduler states loaded here.
         """
         # TODO: resume from checkpoint
-        for epoch, epoch_steps in enumerate(self.training_steps):
-            logging.info(f"Epoch {epoch}")
-            for step in tqdm(epoch_steps):
-                step(self)
+        for i, epoch in enumerate(self.training_epochs):
+            logging.info(f"Epoch {i}")
+            epoch()
