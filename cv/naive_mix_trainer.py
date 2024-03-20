@@ -1,9 +1,8 @@
 import logging
-from ftplib import FTP_PORT
-from sched import scheduler
-from typing import Any, Callable, Dict, Union
+from typing import Callable
 
 import torch
+from abstract_model import AbstractModel
 from mix_trainer import MixTrainer
 from torch import nn
 from tqdm import tqdm
@@ -12,16 +11,15 @@ from tqdm import tqdm
 class NaiveMixTrainer(MixTrainer):
     def __init__(
         self,
-        model,
+        model: AbstractModel,
         eval_dataset,
         compute_metrics: Callable,
         epoch_mix_ratio: float = 0,
+        data_mix_lambda: float = 0,
         loss_mix_alpha: float = 0.5,
         ft_epochs: int = 100,
         pt_epochs: int = 100,
         from_pretrained: bool = False,
-        dataset_mix_ratio: float = 0.5,
-        dataset_mix_noise: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -29,10 +27,9 @@ class NaiveMixTrainer(MixTrainer):
         self.model = model
         self.eval_dataset = eval_dataset
         self.compute_metrics = compute_metrics
+        self.data_mix_ratio = data_mix_lambda
         self.epoch_mix_ratio = epoch_mix_ratio
         self.loss_mix_alpha = loss_mix_alpha
-        self.dataset_mix_ratio = dataset_mix_ratio
-        self.dataset_mix_noise = dataset_mix_noise
 
         if from_pretrained:
             mixable_epoch = ft_epochs * epoch_mix_ratio
@@ -52,68 +49,91 @@ class NaiveMixTrainer(MixTrainer):
 
         self.training_epochs = self._make_training_epochs()
 
-    # def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
     def pretrain_epoch(
         self,
     ):
-        model = self.model
-        scheduler = self.pt_scheduler
-        optimizer = self.pt_optimizer
-        for inputs in tqdm(self.pt_dataloader):
-            model.train()
-            optimizer.zero_grad()
-            outputs = model(**inputs)
-            loss = self.pt_lossfn(outputs, inputs)
+        self.model.train()
+        for inputs, labels in tqdm(self.pt_dataloader):
+            outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
+            loss: torch.Tensor = self.pt_lossfn(outputs, labels)
             loss.backward()
-            optimizer.step()
-            scheduler.step()
+            self.pt_optimizer.step()
+            self.pt_optimizer.zero_grad()
 
-    def mixtrain_epoch(
+    def mixtrain_diff_dataset_epoch(
         self,
     ):
         model = self.model
-        pt_scheduler = self.pt_scheduler
-        pt_optimizer = self.pt_optimizer
-        pt_scheduler = self.pt_scheduler
-        ft_scheduler = self.ft_scheduler
-        ft_optimizer = self.ft_optimizer
-        ft_scheduler = self.ft_scheduler
-        for pt_input, ft_input in tqdm(zip(self.pt_dataloader, self.ft_dataloader)):
-            model.train()
-            pt_optimizer.zero_grad()
-            ft_optimizer.zero_grad()
-            pt_outputs = model(**pt_input)
-            ft_outputs = model(**ft_input)
-            pt_loss = self.pt_lossfn(pt_outputs, pt_input)
-            ft_loss = self.ft_lossfn(ft_outputs, ft_input)
-            if self.dataset_mix_ratio == 0:
-                pt_loss.backward()
-                ft_loss.backward()
-            else:
-                loss = (
-                    self.loss_mix_alpha * pt_loss + (1 - self.loss_mix_alpha) * ft_loss
-                )
+        for (pt_inputs, pt_labels), (ft_inputs, ft_labels) in tqdm(
+            zip(self.pt_dataloader, self.ft_dataloader)
+        ):
+            pt_inputs, pt_labels = pt_inputs.to(self.device), pt_labels.to(self.device)
+            ft_inputs, ft_labels = ft_inputs.to(self.device), ft_labels.to(self.device)
+            if len(pt_inputs) != len(ft_inputs):
+                break
+            inputs = (
+                1 - self.data_mix_ratio
+            ) * pt_inputs + self.data_mix_ratio * ft_inputs
+            labels = ft_labels
+            pt_outputs = self.pt_forwardfn(model, inputs, labels)
+            pt_loss = self.pt_lossfn(pt_outputs, labels)
             pt_loss.backward()
-            ft_loss.backward()
-            pt_optimizer.step()
-            ft_optimizer.step()
-            pt_scheduler.step()
-            ft_scheduler.step()
+            ft_outputs = self.ft_forwardfn(model, inputs)
+            ft_loss = self.ft_lossfn(ft_outputs, inputs)
+            loss: torch.Tensor = (
+                1 - self.loss_mix_alpha
+            ) * pt_loss + self.loss_mix_alpha * ft_loss
+            loss.backward()
+            self.pt_optimizer.step()
+            self.pt_optimizer.zero_grad()
+            self.ft_optimizer.step()
+            self.ft_optimizer.zero_grad()
+        for _ in self.pt_dataloader:
+            pass
+        for _ in self.ft_dataloader:
+            pass
+        self.pt_scheduler.step()
+        self.ft_scheduler.step()
+
+    def mixtrain_same_dataset_epoch(
+        self,
+    ):
+        self.model.train()
+        for inputs, labels in tqdm(self.pt_dataloader):
+            pt_outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
+            pt_loss: torch.Tensor = self.pt_lossfn(pt_outputs, labels)
+            ft_outputs: torch.Tensor = self.ft_forwardfn(self.model, pt_outputs)
+            ft_loss: torch.Tensor = self.ft_lossfn(ft_outputs, labels)
+            loss: torch.Tensor = (
+                1 - self.loss_mix_alpha
+            ) * pt_loss + self.loss_mix_alpha * ft_loss
+            loss.backward()
+            self.pt_optimizer.step()
+            self.pt_optimizer.zero_grad()
+            self.ft_optimizer.step()
+            self.ft_optimizer.zero_grad()
+        self.pt_scheduler.step()
+        self.ft_scheduler.step()
 
     def finetune_epoch(
         self,
     ):
-        model = self.model
-        scheduler = self.ft_scheduler
-        optimizer = self.ft_optimizer
-        for inputs in tqdm(self.ft_dataloader):
-            model.train()
-            optimizer.zero_grad()
-            outputs = model(**inputs)
-            loss = self.pt_lossfn(outputs, inputs)
+        self.model.train()
+        for inputs in tqdm(iter(self.ft_dataloader)):
+            outputs = self.ft_forwardfn(self.model, inputs)
+            loss: torch.Tensor = self.pt_lossfn(outputs, inputs)
             loss.backward()
-            optimizer.step()
-            scheduler.step()
+            self.ft_optimizer.step()
+            self.ft_optimizer.zero_grad()
+        self.ft_scheduler.step()
 
     def _make_training_epochs(self):
-        pass
+        if self.same_dataset:
+            mix_training_epoch = self.mixtrain_same_dataset_epoch
+        else:
+            mix_training_epoch = self.mixtrain_diff_dataset_epoch
+        return (
+            [self.pretrain_epoch] * self.pt_epochs
+            + [mix_training_epoch] * self.mix_epochs
+            + [self.finetune_epoch] * self.ft_epochs
+        )

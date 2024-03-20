@@ -15,23 +15,39 @@ class MixTrainer(abc.ABC):
 
     def __init__(
         self,
+        model,
+        device,
+        pt_forwardfn: Callable,
         pt_lossfn: Callable,
         pt_optimizer,
         pt_scheduler,
         pt_dataloader,
+        ft_forwardfn: Callable,
         ft_lossfn: Callable,
         ft_optimizer,
         ft_scheduler,
-        ft_dataloader,
+        ft_dataloader=None,
+        same_dataset: bool = False,
     ):
+        self.model = model
+        self.device = device
+        self.pt_forwardfn = pt_forwardfn
         self.pt_lossfn = pt_lossfn
         self.pt_optimizer = pt_optimizer
         self.pt_scheduler = pt_scheduler
         self.pt_dataloader = pt_dataloader
+        self.ft_forwardfn = ft_forwardfn
         self.ft_lossfn = ft_lossfn
         self.ft_optimizer = ft_optimizer
         self.ft_scheduler = ft_scheduler
         self.ft_dataloader = ft_dataloader
+        self.same_dataset = same_dataset
+        if same_dataset:
+            # TODO: check if pt_dataloader and ft_dataloader are the same, if not warning
+            logging.info(
+                "As same_dataset is True, pt_dataloader will be used for ft_dataloader"
+            )
+            self.ft_dataloader = pt_dataloader
 
     @abc.abstractmethod
     def _make_training_epochs(
