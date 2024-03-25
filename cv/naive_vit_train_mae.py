@@ -394,3 +394,7 @@ def main():
     )
 
     naive_mix_trainer.train()
+
+
+if __name__ == "__main__":
+    main()
