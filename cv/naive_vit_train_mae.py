@@ -10,6 +10,7 @@ from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vi
     load_from_config_yaml,
 )
 from naive_mix_trainer import NaiveMixTrainer
+from networkx import betweenness_centrality_source
 from randomaug import RandAugment
 from thop import profile
 from torchvision import transforms
@@ -389,7 +390,7 @@ def main():
     best_acc = 0
 
     def eval_fn(model: MAE_Mix, val_dataloader):
-        global best_acc
+        nonlocal best_acc
         model.eval()
         with torch.no_grad():
             losses = []
