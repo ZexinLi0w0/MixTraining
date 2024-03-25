@@ -386,7 +386,7 @@ def main():
 
     best_acc = 0
 
-    def eval_model(val_dataloader, model: MAE_Mix):
+    def eval_fn(model: MAE_Mix, val_dataloader):
         global best_acc
         model.eval()
         with torch.no_grad():
@@ -436,7 +436,7 @@ def main():
         ft_scheduler=ft_lr_scheduler,
         ft_dataloader=ft_training_dataloader,
         val_dataloader=val_dataloader,
-        val_fn=eval_model,
+        eval_fn=eval_fn,
         same_dataset=(args.ft_dataset == args.pt_dataset),
     )
 

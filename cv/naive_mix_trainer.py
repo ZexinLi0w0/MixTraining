@@ -1,8 +1,8 @@
 import logging
-from typing import Callable, List, Tuple
+import time
+from typing import Callable, List
 
 import torch
-from abstract_model import AbstractModel
 from mix_trainer import MixTrainer
 from tqdm import tqdm
 
@@ -10,8 +10,8 @@ from tqdm import tqdm
 class NaiveMixTrainer(MixTrainer):
     def __init__(
         self,
-        eval_dataset,
         compute_metrics: Callable,
+        eval_fn: Callable,
         epoch_mix_ratio: float = 0,
         data_mix_lambda: float = 0,
         loss_mix_alpha: float = 0.5,
@@ -22,7 +22,6 @@ class NaiveMixTrainer(MixTrainer):
     ):
         super().__init__(**kwargs)
         logging.info("Initializing NaiveMixTrainer...")
-        self.eval_dataset = eval_dataset
         self.compute_metrics = compute_metrics
         self.data_mix_ratio = data_mix_lambda
         self.epoch_mix_ratio = epoch_mix_ratio
@@ -44,24 +43,48 @@ class NaiveMixTrainer(MixTrainer):
                 f"Epochs:\nPretrain: {self.pt_epochs}, Mixtrain: {self.mix_epochs}, Finetune: {self.ft_epochs}"
             )
 
+        self.eval_fn = eval_fn
         self.training_epochs = self._make_training_epochs()
 
     def pretrain_epoch(
         self,
     ):
+        training_begin_time = time.time()
         self.model.train()
+        losses = []
+        acces = []
         for inputs, labels in tqdm(iter(self.pt_dataloader)):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             outputs = self.pt_forwardfn(self.model, inputs, labels)
             loss: torch.Tensor = self.pt_lossfn(outputs, inputs, labels)
+            losses.append(loss.item())
             loss.backward()
             self.pt_optimizer.step()
             self.pt_optimizer.zero_grad()
+            acces.append(self.compute_metrics(outputs, inputs, labels).item())
+        self.pt_scheduler.step()
+        avg_loss = sum(losses) / len(losses)
+        avg_acc = sum(acces) / len(acces)
+        training_time = time.time() - training_begin_time
+        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log.update(
+            {
+                "pt_loss": avg_loss,
+                "acc": avg_acc,
+                "ft_loss": 0,
+                "training_time": training_time,
+            }
+        )
+        return log
 
     def mixtrain_diff_dataset_epoch(
         self,
     ):
+        train_begin_time = time.time()
         self.model.train()
+        pt_losses = []
+        ft_losses = []
+        accs = []
         for (pt_inputs, pt_labels), (ft_inputs, ft_labels) in tqdm(
             zip(self.pt_dataloader, self.ft_dataloader)
         ):
@@ -75,9 +98,11 @@ class NaiveMixTrainer(MixTrainer):
             labels = ft_labels
             pt_outputs = self.pt_forwardfn(self.model, inputs, labels)
             pt_loss = self.pt_lossfn(pt_outputs, inputs, labels)
+            pt_losses.append(pt_loss.item())
             pt_loss.backward()
             ft_outputs = self.ft_forwardfn(self.model, inputs, labels, pt_outputs)
             ft_loss = self.ft_lossfn(ft_outputs, inputs, labels)
+            ft_losses.append(ft_loss.item())
             loss: torch.Tensor = (
                 1 - self.loss_mix_alpha
             ) * pt_loss + self.loss_mix_alpha * ft_loss
@@ -86,16 +111,37 @@ class NaiveMixTrainer(MixTrainer):
             self.pt_optimizer.zero_grad()
             self.ft_optimizer.step()
             self.ft_optimizer.zero_grad()
+            accs.append(self.compute_metrics(ft_outputs, inputs, labels).item())
         for _ in self.pt_dataloader:
             pass
         for _ in self.ft_dataloader:
             pass
         self.pt_scheduler.step()
         self.ft_scheduler.step()
+        training_time = time.time() - train_begin_time
+
+        avg_acc = sum(accs) / len(accs)
+        avg_pt_loss = sum(pt_losses) / len(pt_losses)
+        avg_ft_loss = sum(ft_losses) / len(ft_losses)
+
+        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log.update(
+            {
+                "pt_loss": avg_pt_loss,
+                "ft_loss": avg_ft_loss,
+                "training_acc": avg_acc,
+                "training_time": training_time,
+            }
+        )
+        return log
 
     def mixtrain_same_dataset_epoch(
         self,
     ):
+        training_begin_time = time.time()
+        pt_losses = []
+        ft_losses = []
+        acces = []
         self.model.train()
         for inputs, labels in tqdm(iter(self.pt_dataloader)):
             pt_outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
@@ -112,12 +158,32 @@ class NaiveMixTrainer(MixTrainer):
             self.pt_optimizer.zero_grad()
             self.ft_optimizer.step()
             self.ft_optimizer.zero_grad()
+            pt_losses.append(pt_loss.item())
+            ft_losses.append(ft_loss.item())
+            acces.append(self.compute_metrics(ft_outputs, inputs, labels).item())
         self.pt_scheduler.step()
         self.ft_scheduler.step()
+        training_time = time.time() - training_begin_time
+        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        avg_acc = sum(acces) / len(acces)
+        avg_pt_loss = sum(pt_losses) / len(pt_losses)
+        avg_ft_loss = sum(ft_losses) / len(ft_losses)
+        log.update(
+            {
+                "pt_loss": avg_pt_loss,
+                "ft_loss": avg_ft_loss,
+                "training_acc": avg_acc,
+                "training_time": training_time,
+            }
+        )
+        return log
 
     def finetune_epoch(
         self,
     ):
+        training_begin_time = time.time()
+        losses = []
+        acces = []
         self.model.train()
         for inputs, labels in tqdm(iter(self.ft_dataloader)):
             outputs = self.ft_forwardfn(self.model, inputs, labels, None)
@@ -125,7 +191,22 @@ class NaiveMixTrainer(MixTrainer):
             loss.backward()
             self.ft_optimizer.step()
             self.ft_optimizer.zero_grad()
+            losses.append(loss.item())
+            acces.append(self.compute_metrics(outputs, inputs, labels).item())
         self.ft_scheduler.step()
+        training_time = time.time() - training_begin_time
+        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        avg_loss = sum(losses) / len(losses)
+        avg_acc = sum(acces) / len(acces)
+        log.update(
+            {
+                "pt_loss": 0,
+                "ft_loss": avg_loss,
+                "training_acc": avg_acc,
+                "training_time": training_time,
+            }
+        )
+        return log
 
     def _make_training_epochs(self) -> List[Callable[[], None]]:
         if self.same_dataset:

@@ -3,7 +3,11 @@ import logging
 from typing import Callable, List, Optional, Tuple, Union
 
 import torch
+import wandb
+from abstract_model import AbstractModel
 from torch import nn
+
+logging.basicConfig(level=logging.INFO)
 
 
 class MixTrainer(abc.ABC):
@@ -13,7 +17,7 @@ class MixTrainer(abc.ABC):
 
     def __init__(
         self,
-        model,
+        model: AbstractModel,
         device,
         pt_forwardfn: Callable[
             [nn.Module, torch.Tensor, torch.Tensor],
@@ -34,6 +38,7 @@ class MixTrainer(abc.ABC):
         val_fn: Callable,
         ft_dataloader=None,
         same_dataset: bool = False,
+        enable_wandb: bool = False,
     ):
         self.model = model
         self.device = device
@@ -56,6 +61,8 @@ class MixTrainer(abc.ABC):
                 "As same_dataset is True, pt_dataloader will be used for ft_dataloader"
             )
             self.ft_dataloader = pt_dataloader
+        self.logs = []
+        self.enable_wandb = enable_wandb
 
     @abc.abstractmethod
     def _make_training_epochs(
@@ -85,4 +92,8 @@ class MixTrainer(abc.ABC):
         # TODO: resume from checkpoint
         for i, epoch in enumerate(self.training_epochs):
             logging.info(f"Epoch {i}")
-            epoch()
+            log: dict = epoch()
+            self.logs.append(log)
+            logging.info(log)
+            if self.enable_wandb:
+                wandb.log(log)
