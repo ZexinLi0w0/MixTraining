@@ -1,11 +1,9 @@
 import abc
 import logging
-from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
-from tqdm import tqdm
 
 
 class MixTrainer(abc.ABC):
@@ -17,7 +15,9 @@ class MixTrainer(abc.ABC):
         self,
         model,
         device,
-        pt_forwardfn: Callable,
+        pt_forwardfn: Callable[
+            [nn.Module, torch.Tensor, torch.Tensor], torch.Tensor | Tuple[torch.Tensor]
+        ],
         pt_lossfn: Callable,
         pt_optimizer,
         pt_scheduler,
@@ -26,6 +26,8 @@ class MixTrainer(abc.ABC):
         ft_lossfn: Callable,
         ft_optimizer,
         ft_scheduler,
+        val_dataloader,
+        val_fn: Callable,
         ft_dataloader=None,
         same_dataset: bool = False,
     ):
@@ -42,6 +44,7 @@ class MixTrainer(abc.ABC):
         self.ft_scheduler = ft_scheduler
         self.ft_dataloader = ft_dataloader
         self.same_dataset = same_dataset
+        self.val_dataloader = val_dataloader
         if same_dataset:
             # TODO: check if pt_dataloader and ft_dataloader are the same, if not warning
             logging.info(
@@ -52,7 +55,7 @@ class MixTrainer(abc.ABC):
     @abc.abstractmethod
     def _make_training_epochs(
         self,
-    ) -> list[Callable[["MixTrainer"], None]]:
+    ) -> List[Callable]:
         """
         make_mode defines how to partition the training process into pre-training, mix-training and fine-tuning
         to implement this method, you need to gene

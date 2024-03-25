@@ -1,10 +1,9 @@
 import logging
-from typing import Callable
+from typing import Callable, List, Tuple
 
 import torch
 from abstract_model import AbstractModel
 from mix_trainer import MixTrainer
-from torch import nn
 from tqdm import tqdm
 
 
@@ -54,7 +53,9 @@ class NaiveMixTrainer(MixTrainer):
     ):
         self.model.train()
         for inputs, labels in tqdm(self.pt_dataloader):
-            outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
+            outputs: torch.Tensor | Tuple[torch.Tensor] = self.pt_forwardfn(
+                self.model, inputs, labels
+            )
             loss: torch.Tensor = self.pt_lossfn(outputs, labels)
             loss.backward()
             self.pt_optimizer.step()
@@ -63,7 +64,7 @@ class NaiveMixTrainer(MixTrainer):
     def mixtrain_diff_dataset_epoch(
         self,
     ):
-        model = self.model
+        self.model.train()
         for (pt_inputs, pt_labels), (ft_inputs, ft_labels) in tqdm(
             zip(self.pt_dataloader, self.ft_dataloader)
         ):
@@ -75,11 +76,11 @@ class NaiveMixTrainer(MixTrainer):
                 1 - self.data_mix_ratio
             ) * pt_inputs + self.data_mix_ratio * ft_inputs
             labels = ft_labels
-            pt_outputs = self.pt_forwardfn(model, inputs, labels)
+            pt_outputs = self.pt_forwardfn(self.model, inputs, labels)
             pt_loss = self.pt_lossfn(pt_outputs, labels)
             pt_loss.backward()
-            ft_outputs = self.ft_forwardfn(model, inputs)
-            ft_loss = self.ft_lossfn(ft_outputs, inputs)
+            ft_outputs = self.ft_forwardfn(self.model, inputs, labels, pt_outputs)
+            ft_loss = self.ft_lossfn(ft_outputs, labels)
             loss: torch.Tensor = (
                 1 - self.loss_mix_alpha
             ) * pt_loss + self.loss_mix_alpha * ft_loss
@@ -102,7 +103,9 @@ class NaiveMixTrainer(MixTrainer):
         for inputs, labels in tqdm(self.pt_dataloader):
             pt_outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
             pt_loss: torch.Tensor = self.pt_lossfn(pt_outputs, labels)
-            ft_outputs: torch.Tensor = self.ft_forwardfn(self.model, pt_outputs)
+            ft_outputs: torch.Tensor = self.ft_forwardfn(
+                self.model, inputs, labels, pt_outputs
+            )
             ft_loss: torch.Tensor = self.ft_lossfn(ft_outputs, labels)
             loss: torch.Tensor = (
                 1 - self.loss_mix_alpha
@@ -127,7 +130,7 @@ class NaiveMixTrainer(MixTrainer):
             self.ft_optimizer.zero_grad()
         self.ft_scheduler.step()
 
-    def _make_training_epochs(self):
+    def _make_training_epochs(self) -> List[Callable[[], None]]:
         if self.same_dataset:
             mix_training_epoch = self.mixtrain_same_dataset_epoch
         else:

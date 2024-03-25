@@ -4,6 +4,7 @@ import numpy as np
 import tinyimagenet
 import torch
 import torchvision
+import wandb
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
 )
@@ -78,6 +79,7 @@ class MixTrainingArguments:
     linear_probe: bool = False
     model_name: str = "vit-t"
     dataset_mix_lambda: float = 0.5
+    info: str = "test"
 
 
 def prepare_cifar10():
@@ -330,6 +332,41 @@ def main():
         ft_optimizer, lr_lambda=lr_func_mix, verbose=True
     )
 
+    if args.enable_wandb:
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project="mixtrain",
+            name="[{}, warmup, t-{} standard AE {}][{}mix, alpha {}]-{}".format(
+                args.info,
+                args.from_pretrain,
+                args.model_name,
+                args.epoch_mix_ratio,
+                args.loss_mix_alpha,
+                args.pt_dataset,
+            ),
+            # track hyperparameters and run metadata
+            config={
+                "learning_rate": args.base_learning_rate,
+                "architecture": "ViT-T",
+                "dataset": args.ft_dataset,
+                "epochs": args.total_epoch,
+            },
+        )
+
+    def pt_forwardfn(model: MAE_Mix, images, labels):
+        features = model.unmasked_generate(images)
+        features_truncated = features[:-1, :, :]  # [seq_len, batch_size, embed_dim]
+        masked_features, forward_indexes, backward_indexes = (
+            model.apply_mask_to_features(features_truncated)
+        )
+        reconstructed_img, mask = model.generate(masked_features, backward_indexes)
+        return features, reconstructed_img, mask
+
+    def ft_forwardfn(model, inputs, labels, pt_outputs):
+        features, reconstructed_img, mask = pt_outputs
+        logits = model.predict_from_features(features)
+        return logits
+
     naive_mix_trainer = NaiveMixTrainer(
         model=model,
         eval_dataset=val_dataloader,
@@ -341,17 +378,17 @@ def main():
         pt_epochs=args.pt_epoch,
         from_pretrained=args.from_pretrain,
         device=device,
-        pt_forwardfn=model,
+        pt_forwardfn=pt_forwardfn,
         pt_lossfn=ft_lossfn,
         pt_optimizer=pt_optimizer,
         pt_scheduler=pt_lr_scheduler,
         pt_dataloader=pt_training_dataloader,
-        ft_forwardfn=model,
+        ft_forwardfn=ft_forwardfn,
         ft_lossfn=ft_lossfn,
         ft_optimizer=ft_optimizer,
         ft_scheduler=ft_lr_scheduler,
         ft_dataloader=ft_training_dataloader,
-        same_dataset=False,
+        same_dataset=(args.ft_dataset == args.pt_dataset),
     )
 
     naive_mix_trainer.train()
