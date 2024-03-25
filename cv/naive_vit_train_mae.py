@@ -413,7 +413,10 @@ def main():
                 best_acc = avg_val_acc
                 print(f"saving best model with acc {best_acc}!")
                 torch.save(model, args.output_model_path)
-            return avg_val_loss, avg_val_acc
+            return {
+                "val_loss": avg_val_loss,
+                "val_acc": avg_val_acc,
+            }
 
     naive_mix_trainer = NaiveMixTrainer(
         model=model,

@@ -195,7 +195,7 @@ class NaiveMixTrainer(MixTrainer):
         avg_acc = sum(acces) / len(acces)
         log.update(
             {
-                "pt_loss": 0.,
+                "pt_loss": 0.0,
                 "ft_loss": avg_loss,
                 "training_acc": avg_acc,
                 "training_time": training_time,
