@@ -11,7 +11,6 @@ class NaiveMixTrainer(MixTrainer):
     def __init__(
         self,
         compute_metrics: Callable,
-        eval_fn: Callable,
         epoch_mix_ratio: float = 0,
         data_mix_lambda: float = 0,
         loss_mix_alpha: float = 0.5,
@@ -43,7 +42,6 @@ class NaiveMixTrainer(MixTrainer):
                 f"Epochs:\nPretrain: {self.pt_epochs}, Mixtrain: {self.mix_epochs}, Finetune: {self.ft_epochs}"
             )
 
-        self.eval_fn = eval_fn
         self.training_epochs = self._make_training_epochs()
 
     def pretrain_epoch(
@@ -66,7 +64,7 @@ class NaiveMixTrainer(MixTrainer):
         avg_loss = sum(losses) / len(losses)
         avg_acc = sum(acces) / len(acces)
         training_time = time.time() - training_begin_time
-        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log: dict = self.val_fn(self.model, self.val_dataloader)
         log.update(
             {
                 "pt_loss": avg_loss,
@@ -124,7 +122,7 @@ class NaiveMixTrainer(MixTrainer):
         avg_pt_loss = sum(pt_losses) / len(pt_losses)
         avg_ft_loss = sum(ft_losses) / len(ft_losses)
 
-        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log: dict = self.val_fn(self.model, self.val_dataloader)
         log.update(
             {
                 "pt_loss": avg_pt_loss,
@@ -195,7 +193,7 @@ class NaiveMixTrainer(MixTrainer):
             acces.append(self.compute_metrics(outputs, inputs, labels).item())
         self.ft_scheduler.step()
         training_time = time.time() - training_begin_time
-        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log: dict = self.val_fn(self.model, self.val_dataloader)
         avg_loss = sum(losses) / len(losses)
         avg_acc = sum(acces) / len(acces)
         log.update(

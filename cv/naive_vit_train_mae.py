@@ -416,7 +416,6 @@ def main():
 
     naive_mix_trainer = NaiveMixTrainer(
         model=model,
-        eval_dataset=val_dataloader,
         compute_metrics=acc_fn,
         epoch_mix_ratio=args.epoch_mix_ratio,
         data_mix_lambda=args.dataset_mix_lambda,
@@ -436,7 +435,7 @@ def main():
         ft_scheduler=ft_lr_scheduler,
         ft_dataloader=ft_training_dataloader,
         val_dataloader=val_dataloader,
-        eval_fn=eval_fn,
+        val_fn=eval_fn,
         same_dataset=(args.ft_dataset == args.pt_dataset),
     )
 
