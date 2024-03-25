@@ -363,21 +363,20 @@ class MAE_Mix(AbstractModel):
         reconstructed_img, mask = self.generate(features, backward_indexes)
         return reconstructed_img, mask
 
+    def load_from_config_yaml(path: str):
+        import yaml
 
-def load_from_yaml(path: str):
-    import yaml
-
-    with open(path, "r") as f:
-        config = yaml.safe_load(f)
-    return MAE_Mix(
-        mae_encoder=config["mae_encoder"],
-        emb_dim=config["emb_dim"],
-        image_size=config["image_size"],
-        patch_size=config["patch_size"],
-        num_classes=config["num_classes"],
-        decoder_layer=config["decoder_layer"],
-        mask_ratio=config["mask_ratio"],
-    )
+        with open(path, "r") as f:
+            config = yaml.safe_load(f)
+        return MAE_Mix(
+            mae_encoder=config["mae_encoder"],
+            emb_dim=config["emb_dim"],
+            image_size=config["image_size"],
+            patch_size=config["patch_size"],
+            num_classes=config["num_classes"],
+            decoder_layer=config["decoder_layer"],
+            mask_ratio=config["mask_ratio"],
+        )
 
 
 if __name__ == "__main__":

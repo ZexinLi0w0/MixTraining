@@ -6,7 +6,6 @@ import torch
 import torchvision
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
-    load_from_yaml,
 )
 from naive_mix_trainer import NaiveMixTrainer
 from randomaug import RandAugment
@@ -262,7 +261,7 @@ def main():
         val_dataset, args.load_batch_size, shuffle=False, num_workers=32
     )
 
-    model = load_from_yaml(args.model_config).to(device)
+    model = MAE_Mix.load_from_config_yaml(args.model_config)
 
     if args.profile:
         input = torch.randn(1, 3, 224, 224).to(device)
@@ -354,3 +353,5 @@ def main():
         ft_dataloader=ft_training_dataloader,
         same_dataset=False,
     )
+
+    naive_mix_trainer.train()

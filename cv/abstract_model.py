@@ -1,7 +1,9 @@
 # abstract_model.py
 
-import torch.nn as nn
 import abc
+
+import torch.nn as nn
+
 
 class AbstractModel(nn.Module, abc.ABC):
     def __init__(self):
@@ -22,5 +24,12 @@ class AbstractModel(nn.Module, abc.ABC):
     def initialize_weights(self):
         """
         Method for weight initialization.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def load_from_config_yaml(self, config_yaml):
+        """
+        Method to load model from config yaml.
         """
         raise NotImplementedError
