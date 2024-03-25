@@ -26,11 +26,3 @@ class AbstractModel(nn.Module, abc.ABC):
         Method for weight initialization.
         """
         raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def load_from_config_yaml(self, config_yaml):
-        """
-        Method to load model from config yaml.
-        """
-        raise NotImplementedError
