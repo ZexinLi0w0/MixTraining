@@ -368,7 +368,7 @@ def main():
         reconstructed_img, mask = model.generate(masked_features, backward_indexes)
         return features, reconstructed_img, mask
 
-    def ft_forwardfn(model: MAE_Mix, inputs, labels, pt_outputs):
+    def ft_forwardfn(model: MAE_Mix, inputs, labels, pt_outputs=None):
         if pt_outputs is None:
             features = model.unmasked_generate(inputs)
             logits = model.predict_from_features(features)

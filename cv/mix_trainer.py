@@ -3,11 +3,12 @@ import logging
 from typing import Callable, List, Optional, Tuple, Union
 
 import torch
-import wandb
 from abstract_model import AbstractModel
 from torch import nn
 
-logging.basicConfig(level=logging.INFO)
+import wandb
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class MixTrainer(abc.ABC):
