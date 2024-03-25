@@ -84,6 +84,7 @@ class MixTrainingArguments:
     model_name: str = "vit-t"
     dataset_mix_lambda: float = 0.5
     info: str = "test"
+    enable_wandb: bool = True
 
 
 def prepare_cifar10():
@@ -442,6 +443,7 @@ def main():
         val_dataloader=val_dataloader,
         val_fn=eval_fn,
         same_dataset=(args.ft_dataset == args.pt_dataset),
+        enable_wandb=args.enable_wandb,
     )
 
     naive_mix_trainer.train()
