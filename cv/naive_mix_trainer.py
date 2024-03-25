@@ -65,8 +65,8 @@ class NaiveMixTrainer(MixTrainer):
         log.update(
             {
                 "pt_loss": avg_loss,
-                "acc": 0.,
-                "ft_loss": 0.,
+                "acc": 0.0,
+                "ft_loss": 0.0,
                 "training_time": training_time,
             }
         )
