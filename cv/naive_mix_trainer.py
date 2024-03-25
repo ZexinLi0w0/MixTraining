@@ -50,7 +50,7 @@ class NaiveMixTrainer(MixTrainer):
         self,
     ):
         self.model.train()
-        for inputs, labels in tqdm(self.pt_dataloader):
+        for inputs, labels in tqdm(iter(self.pt_dataloader)):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             outputs = self.pt_forwardfn(self.model, inputs, labels)
             loss: torch.Tensor = self.pt_lossfn(outputs, inputs, labels)

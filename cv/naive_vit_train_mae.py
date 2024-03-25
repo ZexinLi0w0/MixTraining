@@ -164,7 +164,7 @@ def prepare_svhn():
 def prepare_tinyimagenet():
     transform_train = transforms.Compose(
         [
-            transforms.Resize((64, 64)),
+            transforms.Resize((64, 64), antialias=True),
             # Randaug as in paper https://openreview.net/forum?id=KXfjZPL5pqr
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomResizedCrop(
@@ -180,6 +180,7 @@ def prepare_tinyimagenet():
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ]
     )
+
     transform_validate = transforms.Compose(
         [
             transforms.Resize((64, 64)),
@@ -266,7 +267,7 @@ def main():
         val_dataset, args.load_batch_size, shuffle=False, num_workers=32
     )
 
-    model = load_from_config_yaml(args.model_config)
+    model = load_from_config_yaml(args.model_config).to(device)
 
     if args.profile:
         input = torch.randn(1, 3, 224, 224).to(device)
