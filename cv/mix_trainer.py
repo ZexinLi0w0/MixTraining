@@ -23,7 +23,10 @@ class MixTrainer(abc.ABC):
         pt_optimizer,
         pt_scheduler,
         pt_dataloader,
-        ft_forwardfn: Callable,
+        ft_forwardfn: Callable[
+            [nn.Module, torch.Tensor, torch.Tensor, torch.Tensor],
+            Union[torch.Tensor, Tuple[torch.Tensor]],
+        ],
         ft_lossfn: Callable,
         ft_optimizer,
         ft_scheduler,
@@ -46,6 +49,7 @@ class MixTrainer(abc.ABC):
         self.ft_dataloader = ft_dataloader
         self.same_dataset = same_dataset
         self.val_dataloader = val_dataloader
+        self.val_fn = val_fn
         if same_dataset:
             # TODO: check if pt_dataloader and ft_dataloader are the same, if not warning
             logging.info(

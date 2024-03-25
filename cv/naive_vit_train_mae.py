@@ -5,6 +5,7 @@ import numpy as np
 import tinyimagenet
 import torch
 import torchvision
+import tqdm
 import wandb
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
@@ -369,13 +370,53 @@ def main():
         logits = model.predict_from_features(features)
         return logits
 
-    ft_lossfn = torch.nn.CrossEntropyLoss()
-    ft_acc_fn = lambda logit, label: torch.mean((logit.argmax(dim=-1) == label).float())
+    def pt_lossfn(outputs, inputs, labels):
+        features, reconstructed_img, mask = outputs
+        loss = torch.mean((reconstructed_img - inputs) ** 2 * mask) / args.mask_ratio
+        return loss
+
+    def ft_lossfn(outputs, inputs, labels):
+        logits = outputs
+        return torch.nn.CrossEntropyLoss()(logits, labels)
+
+    def acc_fn(outputs, inputs, labels):
+        logits = outputs
+        return torch.mean((logits.argmax(dim=-1) == labels).float())
+
+    best_acc = 0
+
+    def eval_model(val_dataloader, model: MAE_Mix):
+        global best_acc
+        model.eval()
+        with torch.no_grad():
+            losses = []
+            acces = []
+            for images, labels in tqdm(iter(val_dataloader)):
+                images = images.to(args.device)
+                labels = labels.to(args.device)
+                logits = model.predict(images)
+                # Compute the accuracy
+                ft_loss = ft_lossfn(logits, images, labels)
+                acc = acc_fn(logits, images, labels)
+                losses.append(ft_loss.item())
+                acces.append(acc.item())
+                # Log the accuracy to wandb
+                # Log the accuracy to tensorboard
+                # Save the model if the accuracy is the best so far
+                torch.save(model, args.output_model_path)
+            avg_val_loss = np.mean(losses)
+            avg_val_acc = np.mean(acces)
+
+            if avg_val_acc > best_acc:
+                best_acc = avg_val_acc
+                print(f"saving best model with acc {best_acc}!")
+                torch.save(model, args.output_model_path)
+            return avg_val_loss, avg_val_acc
 
     naive_mix_trainer = NaiveMixTrainer(
         model=model,
         eval_dataset=val_dataloader,
-        compute_metrics=ft_acc_fn,
+        compute_metrics=acc_fn,
         epoch_mix_ratio=args.epoch_mix_ratio,
         data_mix_lambda=args.dataset_mix_lambda,
         loss_mix_alpha=args.loss_mix_alpha,
@@ -384,7 +425,7 @@ def main():
         from_pretrained=args.from_pretrain,
         device=device,
         pt_forwardfn=pt_forwardfn,
-        pt_lossfn=ft_lossfn,
+        pt_lossfn=pt_lossfn,
         pt_optimizer=pt_optimizer,
         pt_scheduler=pt_lr_scheduler,
         pt_dataloader=pt_training_dataloader,
@@ -393,6 +434,8 @@ def main():
         ft_optimizer=ft_optimizer,
         ft_scheduler=ft_lr_scheduler,
         ft_dataloader=ft_training_dataloader,
+        val_dataloader=val_dataloader,
+        val_fn=eval_model,
         same_dataset=(args.ft_dataset == args.pt_dataset),
     )
 

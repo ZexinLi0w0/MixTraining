@@ -10,7 +10,6 @@ from tqdm import tqdm
 class NaiveMixTrainer(MixTrainer):
     def __init__(
         self,
-        model: AbstractModel,
         eval_dataset,
         compute_metrics: Callable,
         epoch_mix_ratio: float = 0,
@@ -23,7 +22,6 @@ class NaiveMixTrainer(MixTrainer):
     ):
         super().__init__(**kwargs)
         logging.info("Initializing NaiveMixTrainer...")
-        self.model = model
         self.eval_dataset = eval_dataset
         self.compute_metrics = compute_metrics
         self.data_mix_ratio = data_mix_lambda
@@ -53,10 +51,9 @@ class NaiveMixTrainer(MixTrainer):
     ):
         self.model.train()
         for inputs, labels in tqdm(self.pt_dataloader):
-            outputs: torch.Tensor | Tuple[torch.Tensor] = self.pt_forwardfn(
-                self.model, inputs, labels
-            )
-            loss: torch.Tensor = self.pt_lossfn(outputs, labels)
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+            outputs = self.pt_forwardfn(self.model, inputs, labels)
+            loss: torch.Tensor = self.pt_lossfn(outputs, inputs, labels)
             loss.backward()
             self.pt_optimizer.step()
             self.pt_optimizer.zero_grad()
@@ -77,10 +74,10 @@ class NaiveMixTrainer(MixTrainer):
             ) * pt_inputs + self.data_mix_ratio * ft_inputs
             labels = ft_labels
             pt_outputs = self.pt_forwardfn(self.model, inputs, labels)
-            pt_loss = self.pt_lossfn(pt_outputs, labels)
+            pt_loss = self.pt_lossfn(pt_outputs, inputs, labels)
             pt_loss.backward()
             ft_outputs = self.ft_forwardfn(self.model, inputs, labels, pt_outputs)
-            ft_loss = self.ft_lossfn(ft_outputs, labels)
+            ft_loss = self.ft_lossfn(ft_outputs, inputs, labels)
             loss: torch.Tensor = (
                 1 - self.loss_mix_alpha
             ) * pt_loss + self.loss_mix_alpha * ft_loss
@@ -100,7 +97,7 @@ class NaiveMixTrainer(MixTrainer):
         self,
     ):
         self.model.train()
-        for inputs, labels in tqdm(self.pt_dataloader):
+        for inputs, labels in tqdm(iter(self.pt_dataloader)):
             pt_outputs: torch.Tensor = self.pt_forwardfn(self.model, inputs, labels)
             pt_loss: torch.Tensor = self.pt_lossfn(pt_outputs, labels)
             ft_outputs: torch.Tensor = self.ft_forwardfn(
@@ -122,8 +119,8 @@ class NaiveMixTrainer(MixTrainer):
         self,
     ):
         self.model.train()
-        for inputs in tqdm(iter(self.ft_dataloader)):
-            outputs = self.ft_forwardfn(self.model, inputs)
+        for inputs, labels in tqdm(iter(self.ft_dataloader)):
+            outputs = self.ft_forwardfn(self.model, inputs, labels, None)
             loss: torch.Tensor = self.pt_lossfn(outputs, inputs)
             loss.backward()
             self.ft_optimizer.step()
