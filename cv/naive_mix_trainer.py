@@ -50,7 +50,6 @@ class NaiveMixTrainer(MixTrainer):
         training_begin_time = time.time()
         self.model.train()
         losses = []
-        acces = []
         for inputs, labels in tqdm(iter(self.pt_dataloader)):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             outputs = self.pt_forwardfn(self.model, inputs, labels)
@@ -59,17 +58,15 @@ class NaiveMixTrainer(MixTrainer):
             loss.backward()
             self.pt_optimizer.step()
             self.pt_optimizer.zero_grad()
-            acces.append(self.compute_metrics(outputs, inputs, labels).item())
         self.pt_scheduler.step()
         avg_loss = sum(losses) / len(losses)
-        avg_acc = sum(acces) / len(acces)
         training_time = time.time() - training_begin_time
         log: dict = self.val_fn(self.model, self.val_dataloader)
         log.update(
             {
                 "pt_loss": avg_loss,
-                "acc": avg_acc,
-                "ft_loss": 0,
+                "acc": 0.,
+                "ft_loss": 0.,
                 "training_time": training_time,
             }
         )
@@ -162,7 +159,7 @@ class NaiveMixTrainer(MixTrainer):
         self.pt_scheduler.step()
         self.ft_scheduler.step()
         training_time = time.time() - training_begin_time
-        log: dict = self.eval_fn(self.model, self.val_dataloader)
+        log: dict = self.val_fn(self.model, self.val_dataloader)
         avg_acc = sum(acces) / len(acces)
         avg_pt_loss = sum(pt_losses) / len(pt_losses)
         avg_ft_loss = sum(ft_losses) / len(ft_losses)
@@ -198,7 +195,7 @@ class NaiveMixTrainer(MixTrainer):
         avg_acc = sum(acces) / len(acces)
         log.update(
             {
-                "pt_loss": 0,
+                "pt_loss": 0.,
                 "ft_loss": avg_loss,
                 "training_acc": avg_acc,
                 "training_time": training_time,

@@ -6,7 +6,6 @@ import tinyimagenet
 import torch
 import torchvision
 import tqdm
-import wandb
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
     load_from_config_yaml,
@@ -17,6 +16,8 @@ from thop import profile
 from torchvision import transforms
 from transformers import HfArgumentParser
 from utils import setup_seed  # Assuming this is a function to set the random seed
+
+import wandb
 
 
 class HFDataset(torch.utils.data.Dataset):
