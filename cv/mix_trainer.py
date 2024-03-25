@@ -16,7 +16,8 @@ class MixTrainer(abc.ABC):
         model,
         device,
         pt_forwardfn: Callable[
-            [nn.Module, torch.Tensor, torch.Tensor], torch.Tensor | Tuple[torch.Tensor]
+            [nn.Module, torch.Tensor, torch.Tensor],
+            Union[torch.Tensor, Tuple[torch.Tensor]],
         ],
         pt_lossfn: Callable,
         pt_optimizer,

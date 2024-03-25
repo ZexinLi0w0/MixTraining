@@ -7,6 +7,7 @@ import torchvision
 import wandb
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
+    load_from_config_yaml,
 )
 from naive_mix_trainer import NaiveMixTrainer
 from randomaug import RandAugment
@@ -39,8 +40,6 @@ class HFDataset(torch.utils.data.Dataset):
         return image, label
 
 
-ft_lossfn = torch.nn.CrossEntropyLoss()
-ft_acc_fn = lambda logit, label: torch.mean((logit.argmax(dim=-1) == label).float())
 torch.autograd.set_detect_anomaly(True)
 
 from dataclasses import dataclass
@@ -263,7 +262,7 @@ def main():
         val_dataset, args.load_batch_size, shuffle=False, num_workers=32
     )
 
-    model = MAE_Mix.load_from_config_yaml(args.model_config)
+    model = load_from_config_yaml(args.model_config)
 
     if args.profile:
         input = torch.randn(1, 3, 224, 224).to(device)
@@ -362,10 +361,13 @@ def main():
         reconstructed_img, mask = model.generate(masked_features, backward_indexes)
         return features, reconstructed_img, mask
 
-    def ft_forwardfn(model, inputs, labels, pt_outputs):
+    def ft_forwardfn(model: MAE_Mix, inputs, labels, pt_outputs):
         features, reconstructed_img, mask = pt_outputs
         logits = model.predict_from_features(features)
         return logits
+
+    ft_lossfn = torch.nn.CrossEntropyLoss()
+    ft_acc_fn = lambda logit, label: torch.mean((logit.argmax(dim=-1) == label).float())
 
     naive_mix_trainer = NaiveMixTrainer(
         model=model,

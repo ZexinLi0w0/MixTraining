@@ -27,6 +27,7 @@ class AbstractModel(nn.Module, abc.ABC):
         """
         raise NotImplementedError
 
+    @classmethod
     @abc.abstractmethod
     def load_from_config_yaml(self, config_yaml):
         """
