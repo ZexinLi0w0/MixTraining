@@ -1,7 +1,7 @@
+mae_encoder: null
 decoder_layer: 2
 emb_dim: 192
-image_size: 32
-mae_encoder: null
+image_size: 64
 mask_ratio: 0.0
 num_classes: 10
-patch_size: 2
+patch_size: 4
