@@ -1,4 +1,5 @@
 import math
+import os
 
 import numpy as np
 import tinyimagenet
@@ -57,7 +58,9 @@ class MixTrainingArguments:
     warmup_epoch: int = 5
     pretrained_model_path: str = None
     output_model_path: str = "test.pt"
-    model_config: str = "config/cifar10_mix_vit.yml"
+    model_config: str = os.path.join(
+        os.path.dirname(__file__), "config/cifar10_mix_vit.yml"
+    )
     enable_wandb: bool = True
     pt_dataset: str = "tinyimagenet"
     ft_dataset: str = "cifar10"
