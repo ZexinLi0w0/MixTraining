@@ -5,7 +5,7 @@ import numpy as np
 import tinyimagenet
 import torch
 import torchvision
-import tqdm
+from tqdm import tqdm
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
     load_from_config_yaml,
