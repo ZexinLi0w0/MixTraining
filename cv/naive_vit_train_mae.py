@@ -84,7 +84,6 @@ class MixTrainingArguments:
     model_name: str = "vit-t"
     dataset_mix_lambda: float = 0.5
     info: str = "test"
-    enable_wandb: bool = True
 
 
 def prepare_cifar10():
@@ -370,8 +369,12 @@ def main():
         return features, reconstructed_img, mask
 
     def ft_forwardfn(model: MAE_Mix, inputs, labels, pt_outputs):
-        features, reconstructed_img, mask = pt_outputs
-        logits = model.predict_from_features(features)
+        if pt_outputs is None:
+            features = model.unmasked_generate(inputs)
+            logits = model.predict_from_features(features)
+        else:
+            features, reconstructed_img, mask = pt_outputs
+            logits = model.predict_from_features(features)
         return logits
 
     def pt_lossfn(outputs, inputs, labels):

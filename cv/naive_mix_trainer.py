@@ -56,6 +56,7 @@ class NaiveMixTrainer(MixTrainer):
             loss: torch.Tensor = self.pt_lossfn(outputs, inputs, labels)
             losses.append(loss.item())
             loss.backward()
+            logging.log(1, f"Loss: {loss.item()}")
             self.pt_optimizer.step()
             self.pt_optimizer.zero_grad()
         self.pt_scheduler.step()
