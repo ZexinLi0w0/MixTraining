@@ -5,7 +5,6 @@ import numpy as np
 import tinyimagenet
 import torch
 import torchvision
-from tqdm import tqdm
 from model_vit import (  # Assuming that MAE_Decoder is also defined in model_vit.py
     MAE_Mix,
     load_from_config_yaml,
@@ -14,6 +13,7 @@ from naive_mix_trainer import NaiveMixTrainer
 from randomaug import RandAugment
 from thop import profile
 from torchvision import transforms
+from tqdm import tqdm
 from transformers import HfArgumentParser
 from utils import setup_seed  # Assuming this is a function to set the random seed
 
@@ -70,7 +70,7 @@ class MixTrainingArguments:
     mask_ratio: float = 0.75
     mode: str = "mix"
     debug: bool = False
-    epoch_mix_ratio: float = 0
+    epoch_mix_ratio: float = 0.5
     loss_mix_alpha: float = 0.5
     k: int = 1
     load_batch_size: int = 256
@@ -98,6 +98,8 @@ def prepare_cifar10():
     transform_validate = transforms.Compose(
         [
             transforms.ToTensor(),
+            # make modification to upscale to 64x64 to match the resolution of TinyImageNet
+            transforms.Resize((64, 64), antialias=True),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ]
     )
@@ -254,7 +256,6 @@ def main():
     setup_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # train_dataset, val_dataset = prepare_dataset(args)
     pt_training_dataset, _ = prepare_dataset(args.pt_dataset)
     ft_training_dataset, val_dataset = prepare_dataset(args.ft_dataset)
 
